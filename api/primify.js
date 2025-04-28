@@ -11,7 +11,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { userName, message } = req.body;
+    // Parse the request body manually
+    const buffers = [];
+    for await (const chunk of req) {
+      buffers.push(chunk);
+    }
+    const rawBody = Buffer.concat(buffers).toString();
+    const body = JSON.parse(rawBody);
+
+    const { userName, message } = body;
 
     if (!message) {
       return res.status(400).json({ error: 'Missing message' });
@@ -38,4 +46,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Primify API request failed' });
   }
 }
-
