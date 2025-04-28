@@ -1,23 +1,20 @@
-// Primify API - Node.js / Express server
-
 import express from 'express';
 import cors from 'cors';
 import { Configuration, OpenAIApi } from 'openai';
+import { createServer } from 'http';
+import { parse } from 'url';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Load your OpenAI API Key from environment variables
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
 
-// Primify's system prompt
 const primifySystemPrompt = `You are Primify, a clever, upbeat, supportive AI coach designed to help recent retirees embrace a purposeful and fulfilling next chapter. Keep initial responses short, playful, and question-driven. Offer micro-suggestions only after user answers. Maintain a witty, lighthearted, non-judgmental tone. Categories: Growth 📚, Social 🎉, Health 🏃‍♂️, Giving Back 🤝, Finance 💰.`;
 
-// POST route to receive messages
 app.post('/api/primify', async (req, res) => {
   const { userName, message } = req.body;
 
@@ -33,13 +30,19 @@ app.post('/api/primify', async (req, res) => {
     });
 
     const reply = response.data.choices[0].message.content.trim();
-
     res.json({ reply });
   } catch (error) {
-    console.error('Error with Primify API:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Something went wrong with Primify!' });
+    console.error('Primify API error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Something went wrong!' });
   }
 });
 
-// Export for Vercel
+// For Vercel deployment:
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export default app;
+
