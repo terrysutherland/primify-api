@@ -1,25 +1,25 @@
-import express from 'express';
-import cors from 'cors';
 import { Configuration, OpenAIApi } from 'openai';
-import { createServer } from 'http';
-import { parse } from 'url';
-
-const app = express();
-app.use(cors());
-app.use(express.json());
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
 
-const primifySystemPrompt = `You are Primify, a clever, upbeat, supportive AI coach designed to help recent retirees embrace a purposeful and fulfilling next chapter. Keep initial responses short, playful, and question-driven. Offer micro-suggestions only after user answers. Maintain a witty, lighthearted, non-judgmental tone. Categories: Growth 📚, Social 🎉, Health 🏃‍♂️, Giving Back 🤝, Finance 💰.`;
-
-app.post('/api/primify', async (req, res) => {
-  const { userName, message } = req.body;
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   try {
-    const response = await openai.createChatCompletion({
+    const { userName, message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'Missing message' });
+    }
+
+    const primifySystemPrompt = `You are Primify, a clever, upbeat, supportive AI coach designed to help recent retirees embrace a purposeful and fulfilling next chapter. Keep initial responses short, playful, and question-driven. Offer micro-suggestions only after user answers. Maintain a witty, lighthearted, non-judgmental tone. Categories: Growth 📚, Social 🎉, Health 🏃‍♂️, Giving Back 🤝, Finance 💰.`;
+
+    const completion = await openai.createChatCompletion({
       model: 'gpt-4-turbo',
       messages: [
         { role: 'system', content: primifySystemPrompt },
@@ -29,20 +29,12 @@ app.post('/api/primify', async (req, res) => {
       max_tokens: 300,
     });
 
-    const reply = response.data.choices[0].message.content.trim();
-    res.json({ reply });
+    const reply = completion.data.choices[0].message.content.trim();
+
+    return res.status(200).json({ reply });
+
   } catch (error) {
-    console.error('Primify API error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Something went wrong!' });
+    console.error('Primify API Error:', error.response?.data || error.message);
+    return res.status(500).json({ error: 'Primify API request failed' });
   }
-});
-
-// For Vercel deployment:
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-export default app;
-
+}
